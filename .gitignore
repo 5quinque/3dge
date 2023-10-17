@@ -1,0 +1,9 @@
+## .gitignore
+
+# python files
+/venv/
+__pycache__/
+*.py[cod]
+
+
+assets/*gen.png
