@@ -36,7 +36,7 @@ vec3 hash31(float p)
 // e.g. a shadow for dark voxels and a highlight for light voxels
 vec3 get_color_modifier(vec3 position, int uv_index)
 {
-    vec3 color_modifier = vec3(1.0, 1.0, 1.0);
+    vec3 color_modifier;
 
     // determine if we are on an even or odd face
     // if we are on an even face, we want to return a shadow color
@@ -53,10 +53,8 @@ vec3 get_color_modifier(vec3 position, int uv_index)
     }
 
 
-    // position.y has a maximum value of 64 (the height of the chunk)
-    // we want to scale this value to be between 0.05 and 5
-    // with 5.0 being the top of the chunk and 0.05 being the bottom
-    
+    // 0.0195 is 5 / 256, and is the step size we're using for the color modifier
+    // based on the height of the voxel
     color_modifier *= 0.0195 * position.y;
 
     return color_modifier;

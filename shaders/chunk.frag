@@ -16,7 +16,7 @@ void main()
     tex_col = pow(tex_col, gamma);
 
     tex_col.rgb *= voxel_color;
-    
+
     tex_col = pow(tex_col, inv_gamma);
     fragColor = vec4(tex_col, 1);
 }
