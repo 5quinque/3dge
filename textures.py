@@ -8,7 +8,7 @@ class Texture:
         self.ctx = app.ctx
 
         # load textures
-        self.texture_0 = self.load("frame.png")
+        self.texture_0 = self.load("brick.png")
 
         self.texture_0.use(location=0)
 
