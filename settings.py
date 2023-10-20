@@ -7,7 +7,7 @@ import math
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "DISABLE"
 
-FPS = 60
+FPS = 0
 
 # resolution of the screen
 WIN_RES = glm.vec2(1800, 1200)
@@ -39,7 +39,7 @@ FAR = 2000.0
 PITCH_MAX = glm.radians(89.0)
 
 # player
-PLAYER_SPEED = 0.10
+PLAYER_SPEED = 0.050
 PLAYER_ROT_SPEED = 0.003
 PLAYER_POS = glm.vec3(CENTER_XZ, WORLD_H * CHUNK_SIZE, CENTER_XZ)
 MOUSE_SENSITIVITY = 0.002
