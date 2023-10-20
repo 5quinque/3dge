@@ -47,8 +47,29 @@ def get_ambient_occlusion(local_pos, world_pos, world_voxels, plane):
 
 
 @njit
-def to_uint8(x, y, z, voxel_id, face_id, ao_id, flip_id):
-    return uint8(x), uint8(y), uint8(z), uint8(voxel_id), uint8(face_id), uint8(ao_id), uint8(flip_id)
+def pack_data(x, y, z, voxel_id, face_id, ao_id, flip_id):
+    # x: 6bit, y: 6bit, z: 6bit, voxel_id: 8bit, face_id: 3bit, ao_id: 2bit, flip_id: 1bit
+    a, b, c, d, e, f, g = x, y, z, voxel_id, face_id, ao_id, flip_id
+
+    b_bit, c_bit, d_bit, e_bit, f_bit, g_bit = 6, 6, 8, 3, 2, 1
+    fg_bit = f_bit + g_bit
+    efg_bit = e_bit + fg_bit
+    defg_bit = d_bit + efg_bit
+    cdefg_bit = c_bit + defg_bit
+    bcdefg_bit = b_bit + cdefg_bit
+
+    packed_data = (
+        a << bcdefg_bit
+        | b << cdefg_bit
+        | c << defg_bit
+        | d << efg_bit
+        | e << fg_bit
+        | f << g_bit
+        | g
+    )
+
+    return packed_data
+
 
 @njit
 def get_chunk_index(world_voxel_pos):
@@ -58,9 +79,9 @@ def get_chunk_index(world_voxel_pos):
     cz = wz // CHUNK_SIZE
     if not (0 <= cx < WORLD_W and 0 <= cy < WORLD_H and 0 <= cz < WORLD_D):
         return -1  # Even though `None` would have been more pythonic,
-                   # we have to return -1 here as numba doesn't support None
-                   # It would raise an exception:
-                   # NumbaTypeError: Unsupported array index type OptionalType(int64) in [OptionalType(int64)]
+        # we have to return -1 here as numba doesn't support None
+        # It would raise an exception:
+        # NumbaTypeError: Unsupported array index type OptionalType(int64) in [OptionalType(int64)]
     return cx + WORLD_W * cz + WORLD_AREA * cy
 
 
@@ -72,7 +93,9 @@ def is_void(local_voxel_pos, world_voxel_pos, world_voxels):
     chunk_voxels = world_voxels[chunk_index]
 
     x, y, z = local_voxel_pos
-    voxel_index = x % CHUNK_SIZE + z % CHUNK_SIZE * CHUNK_SIZE + y % CHUNK_SIZE * CHUNK_AREA
+    voxel_index = (
+        x % CHUNK_SIZE + z % CHUNK_SIZE * CHUNK_SIZE + y % CHUNK_SIZE * CHUNK_AREA
+    )
 
     if chunk_voxels[voxel_index]:
         return False
@@ -82,15 +105,14 @@ def is_void(local_voxel_pos, world_voxel_pos, world_voxels):
 @njit
 def add_data(vertex_data, index, *vertices):
     for vertex in vertices:
-        for value in vertex:
-            vertex_data[index] = value
-            index += 1
+        vertex_data[index] = vertex
+        index += 1
     return index
 
 
 @njit
 def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
-    vertex_data = np.empty(CHUNK_VOL * 18 * format_size, dtype="uint8")
+    vertex_data = np.empty(CHUNK_VOL * 18 * format_size, dtype="uint32")
     index = 0
 
     for x in range(CHUNK_SIZE):
@@ -109,14 +131,16 @@ def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
                 # top face
                 if is_void((x, y + 1, z), (wx, wy + 1, wz), world_voxels):
                     # get ambient occlusion
-                    ao = get_ambient_occlusion((x, y + 1, z), (wx, wy + 1, wz), world_voxels, plane="Y")
+                    ao = get_ambient_occlusion(
+                        (x, y + 1, z), (wx, wy + 1, wz), world_voxels, plane="Y"
+                    )
                     flip_id = ao[1] + ao[3] > ao[0] + ao[2]
 
                     # format: x, y, z, voxel_id, face_id, ao_id
-                    v0 = to_uint8(x, y + 1, z, voxel_id, 0, ao[0], flip_id)
-                    v1 = to_uint8(x + 1, y + 1, z, voxel_id, 0, ao[1], flip_id)
-                    v2 = to_uint8(x + 1, y + 1, z + 1, voxel_id, 0, ao[2], flip_id)
-                    v3 = to_uint8(x, y + 1, z + 1, voxel_id, 0, ao[3], flip_id)
+                    v0 = pack_data(x, y + 1, z, voxel_id, 0, ao[0], flip_id)
+                    v1 = pack_data(x + 1, y + 1, z, voxel_id, 0, ao[1], flip_id)
+                    v2 = pack_data(x + 1, y + 1, z + 1, voxel_id, 0, ao[2], flip_id)
+                    v3 = pack_data(x, y + 1, z + 1, voxel_id, 0, ao[3], flip_id)
 
                     if flip_id:
                         index = add_data(vertex_data, index, v1, v0, v3, v1, v3, v2)
@@ -125,13 +149,15 @@ def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
 
                 # bottom face
                 if is_void((x, y - 1, z), (wx, wy - 1, wz), world_voxels):
-                    ao = get_ambient_occlusion((x, y - 1, z), (wx, wy - 1, wz), world_voxels, plane="Y")
+                    ao = get_ambient_occlusion(
+                        (x, y - 1, z), (wx, wy - 1, wz), world_voxels, plane="Y"
+                    )
                     flip_id = ao[1] + ao[3] > ao[0] + ao[2]
 
-                    v0 = to_uint8(x, y, z, voxel_id, 1, ao[0], flip_id)
-                    v1 = to_uint8(x + 1, y, z, voxel_id, 1, ao[1], flip_id)
-                    v2 = to_uint8(x + 1, y, z + 1, voxel_id, 1, ao[2], flip_id)
-                    v3 = to_uint8(x, y, z + 1, voxel_id, 1, ao[3], flip_id)
+                    v0 = pack_data(x, y, z, voxel_id, 1, ao[0], flip_id)
+                    v1 = pack_data(x + 1, y, z, voxel_id, 1, ao[1], flip_id)
+                    v2 = pack_data(x + 1, y, z + 1, voxel_id, 1, ao[2], flip_id)
+                    v3 = pack_data(x, y, z + 1, voxel_id, 1, ao[3], flip_id)
 
                     if flip_id:
                         index = add_data(vertex_data, index, v1, v3, v0, v1, v2, v3)
@@ -140,13 +166,15 @@ def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
 
                 # right face
                 if is_void((x + 1, y, z), (wx + 1, wy, wz), world_voxels):
-                    ao = get_ambient_occlusion((x + 1, y, z), (wx + 1, wy, wz), world_voxels, plane="X")
+                    ao = get_ambient_occlusion(
+                        (x + 1, y, z), (wx + 1, wy, wz), world_voxels, plane="X"
+                    )
                     flip_id = ao[1] + ao[3] > ao[0] + ao[2]
 
-                    v0 = to_uint8(x + 1, y, z, voxel_id, 2, ao[0], flip_id)
-                    v1 = to_uint8(x + 1, y + 1, z, voxel_id, 2, ao[1], flip_id)
-                    v2 = to_uint8(x + 1, y + 1, z + 1, voxel_id, 2, ao[2], flip_id)
-                    v3 = to_uint8(x + 1, y, z + 1, voxel_id, 2, ao[3], flip_id)
+                    v0 = pack_data(x + 1, y, z, voxel_id, 2, ao[0], flip_id)
+                    v1 = pack_data(x + 1, y + 1, z, voxel_id, 2, ao[1], flip_id)
+                    v2 = pack_data(x + 1, y + 1, z + 1, voxel_id, 2, ao[2], flip_id)
+                    v3 = pack_data(x + 1, y, z + 1, voxel_id, 2, ao[3], flip_id)
 
                     if flip_id:
                         index = add_data(vertex_data, index, v3, v0, v1, v3, v1, v2)
@@ -155,13 +183,15 @@ def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
 
                 # left face
                 if is_void((x - 1, y, z), (wx - 1, wy, wz), world_voxels):
-                    ao = get_ambient_occlusion((x - 1, y, z), (wx - 1, wy, wz), world_voxels, plane="X")
+                    ao = get_ambient_occlusion(
+                        (x - 1, y, z), (wx - 1, wy, wz), world_voxels, plane="X"
+                    )
                     flip_id = ao[1] + ao[3] > ao[0] + ao[2]
 
-                    v0 = to_uint8(x, y, z, voxel_id, 3, ao[0], flip_id)
-                    v1 = to_uint8(x, y + 1, z, voxel_id, 3, ao[1], flip_id)
-                    v2 = to_uint8(x, y + 1, z + 1, voxel_id, 3, ao[2], flip_id)
-                    v3 = to_uint8(x, y, z + 1, voxel_id, 3, ao[3], flip_id)
+                    v0 = pack_data(x, y, z, voxel_id, 3, ao[0], flip_id)
+                    v1 = pack_data(x, y + 1, z, voxel_id, 3, ao[1], flip_id)
+                    v2 = pack_data(x, y + 1, z + 1, voxel_id, 3, ao[2], flip_id)
+                    v3 = pack_data(x, y, z + 1, voxel_id, 3, ao[3], flip_id)
 
                     if flip_id:
                         index = add_data(vertex_data, index, v3, v1, v0, v3, v2, v1)
@@ -170,13 +200,15 @@ def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
 
                 # back face
                 if is_void((x, y, z - 1), (wx, wy, wz - 1), world_voxels):
-                    ao = get_ambient_occlusion((x, y, z - 1), (wx, wy, wz - 1), world_voxels, plane="Z")
+                    ao = get_ambient_occlusion(
+                        (x, y, z - 1), (wx, wy, wz - 1), world_voxels, plane="Z"
+                    )
                     flip_id = ao[1] + ao[3] > ao[0] + ao[2]
 
-                    v0 = to_uint8(x, y, z, voxel_id, 4, ao[0], flip_id)
-                    v1 = to_uint8(x, y + 1, z, voxel_id, 4, ao[1], flip_id)
-                    v2 = to_uint8(x + 1, y + 1, z, voxel_id, 4, ao[2], flip_id)
-                    v3 = to_uint8(x + 1, y, z, voxel_id, 4, ao[3], flip_id)
+                    v0 = pack_data(x, y, z, voxel_id, 4, ao[0], flip_id)
+                    v1 = pack_data(x, y + 1, z, voxel_id, 4, ao[1], flip_id)
+                    v2 = pack_data(x + 1, y + 1, z, voxel_id, 4, ao[2], flip_id)
+                    v3 = pack_data(x + 1, y, z, voxel_id, 4, ao[3], flip_id)
 
                     if flip_id:
                         index = add_data(vertex_data, index, v3, v0, v1, v3, v1, v2)
@@ -185,17 +217,19 @@ def build_chunk_mesh(chunk_voxels, format_size, chunk_pos, world_voxels):
 
                 # front face
                 if is_void((x, y, z + 1), (wx, wy, wz + 1), world_voxels):
-                    ao = get_ambient_occlusion((x, y, z + 1), (wx, wy, wz + 1), world_voxels, plane="Z")
+                    ao = get_ambient_occlusion(
+                        (x, y, z + 1), (wx, wy, wz + 1), world_voxels, plane="Z"
+                    )
                     flip_id = ao[1] + ao[3] > ao[0] + ao[2]
 
-                    v0 = to_uint8(x, y, z + 1, voxel_id, 5, ao[0], flip_id)
-                    v1 = to_uint8(x, y + 1, z + 1, voxel_id, 5, ao[1], flip_id)
-                    v2 = to_uint8(x + 1, y + 1, z + 1, voxel_id, 5, ao[2], flip_id)
-                    v3 = to_uint8(x + 1, y, z + 1, voxel_id, 5, ao[3], flip_id)
+                    v0 = pack_data(x, y, z + 1, voxel_id, 5, ao[0], flip_id)
+                    v1 = pack_data(x, y + 1, z + 1, voxel_id, 5, ao[1], flip_id)
+                    v2 = pack_data(x + 1, y + 1, z + 1, voxel_id, 5, ao[2], flip_id)
+                    v3 = pack_data(x + 1, y, z + 1, voxel_id, 5, ao[3], flip_id)
 
                     if flip_id:
                         index = add_data(vertex_data, index, v3, v1, v0, v3, v2, v1)
                     else:
                         index = add_data(vertex_data, index, v0, v2, v1, v0, v3, v2)
 
-    return vertex_data[:index + 1]
+    return vertex_data[: index + 1]

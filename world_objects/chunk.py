@@ -36,17 +36,20 @@ class Chunk:
         cx, cy, cz = glm.ivec3(self.position) * CHUNK_SIZE
 
         for x in range(CHUNK_SIZE):
+            wx = x + cx
             for z in range(CHUNK_SIZE):
-                wx = x + cx
                 wz = z + cz
 
                 # world height calculated with simplex noise
                 world_height = int(
                     glm.simplex(  # simplex noise
                         # glm.vec2(wx, wz) * 0.0053  # scale)
-                        glm.vec2(wx, wz) * 0.01  # scale
-                    # ) * 10 + 20  # height
-                    ) * 32 + 32  # height
+                        glm.vec2(wx, wz)
+                        * 0.01  # scale
+                        # ) * 10 + 20  # height
+                    )
+                    * 32
+                    + 32  # height
                 )
                 local_height = min(world_height - cy, CHUNK_SIZE)
                 for y in range(local_height):

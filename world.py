@@ -5,7 +5,7 @@ from world_objects.chunk import Chunk
 class World:
     def __init__(self, app):
         self.app = app
-        self.chunk = [None for _ in range(WORLD_VOL)]
+        self.chunks = [None for _ in range(WORLD_VOL)]
         self.voxels = np.empty([WORLD_VOL, CHUNK_VOL], dtype="uint8")
 
         self.build_chunks()
@@ -18,7 +18,7 @@ class World:
                     chunk = Chunk(self, position=(x, y, z))
 
                     chunk_index = x + WORLD_W * z + WORLD_AREA * y
-                    self.chunk[chunk_index] = chunk
+                    self.chunks[chunk_index] = chunk
 
                     # put chunk voxels into seperate array
                     self.voxels[chunk_index] = chunk.build_voxels()
@@ -27,11 +27,11 @@ class World:
                     chunk.voxels = self.voxels[chunk_index]
 
     def build_chunk_mesh(self):
-        for chunk in self.chunk:
+        for chunk in self.chunks:
             chunk.build_mesh()
 
     def render(self):
-        for chunk in self.chunk:
+        for chunk in self.chunks:
             chunk.render()
 
     def update(self):
