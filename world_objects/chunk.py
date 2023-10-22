@@ -45,7 +45,7 @@ class Chunk:
                     glm.simplex(  # simplex noise
                         # glm.vec2(wx, wz) * 0.0053  # scale)
                         glm.vec2(wx, wz)
-                        * 0.01  # scale
+                        * 0.005  # scale
                         # ) * 10 + 20  # height
                     )
                     * 32

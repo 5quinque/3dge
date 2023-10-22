@@ -109,7 +109,7 @@ void main()
     
     uv = uv_coords[uv_indices[uv_index]];
     // voxel_color = hash31(float(voxel_id));
-    voxel_color = get_color_modifier(in_position, uv_index);
+    // voxel_color = get_color_modifier(in_position, uv_index);
     shading = face_shading[face_id] * ao_values[ao_id];
 
     gl_Position = m_proj * m_view * m_model * vec4(in_position, 1.0);
