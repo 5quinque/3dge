@@ -1,6 +1,7 @@
 from settings import *
 from world import World
 
+
 class Scene:
     def __init__(self, app) -> None:
         self.app = app

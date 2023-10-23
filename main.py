@@ -14,7 +14,9 @@ class VoxelEngine:
         pg.init()
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
-        pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE)
+        pg.display.gl_set_attribute(
+            pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE
+        )
         pg.display.gl_set_attribute(pg.GL_DEPTH_SIZE, 24)
 
         # set window icon as letter v
@@ -59,8 +61,12 @@ class VoxelEngine:
 
     def handle_events(self):
         for event in pg.event.get():
-            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+            if event.type == pg.QUIT or (
+                event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE
+            ):
                 self.is_running = False
+
+            self.player.handle_event(event=event)
 
     def run(self):
         while self.is_running:
@@ -72,7 +78,7 @@ class VoxelEngine:
         sys.exit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     engine = VoxelEngine()
     engine.run()
     pg.quit()

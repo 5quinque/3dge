@@ -1,3 +1,5 @@
+import random
+
 from settings import *
 from meshes.chunk_mesh import ChunkMesh
 
@@ -28,6 +30,15 @@ class Chunk:
         self.set_uniform()
         self.mesh.render()
 
+    def generate_simplex_noise(self, *vector):
+        return int(glm.simplex(glm.vec2(*vector) * 0.005) * 32 + 32)
+
+    def generate_sin(self, *sin_range, x):
+        return int(
+            sin_range[0]
+            + sin_range[1] * np.sin(np.pi * x / (sin_range[1] * sin_range[1]))
+        )
+
     def build_voxels(self):
         # empty chunk
         voxels = np.zeros(CHUNK_VOL, dtype="uint8")
@@ -35,26 +46,27 @@ class Chunk:
         # fill chunk
         cx, cy, cz = glm.ivec3(self.position) * CHUNK_SIZE
 
+        rng = random.randrange(1, 100)
+
         for x in range(CHUNK_SIZE):
             wx = x + cx
             for z in range(CHUNK_SIZE):
                 wz = z + cz
 
                 # world height calculated with simplex noise
-                world_height = int(
-                    glm.simplex(  # simplex noise
-                        # glm.vec2(wx, wz) * 0.0053  # scale)
-                        glm.vec2(wx, wz)
-                        * 0.005  # scale
-                        # ) * 10 + 20  # height
-                    )
-                    * 32
-                    + 32  # height
-                )
+                # For this specific voxel column, it will return
+                # the height for that point in the chunk, e.g. how many
+                # voxels in that column
+                world_height = self.generate_simplex_noise(wx, wz)
+                # print("world height at wx", wx, world_height)
                 local_height = min(world_height - cy, CHUNK_SIZE)
                 for y in range(local_height):
                     wy = y + cy
-                    voxels[x + CHUNK_SIZE * z + CHUNK_AREA * y] = wy + 1
+
+                    # the `voxel_id` is the "type" of voxel
+                    # e.g. grass, dirt, stone, etc.
+                    voxel_id = rng
+                    voxels[x + CHUNK_SIZE * z + CHUNK_AREA * y] = voxel_id
 
         if np.any(voxels):
             self.is_empty = False

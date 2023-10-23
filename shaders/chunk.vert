@@ -108,7 +108,7 @@ void main()
     int uv_index = gl_VertexID % 6 + ((face_id & 1) + flip_id * 2) * 6;
     
     uv = uv_coords[uv_indices[uv_index]];
-    // voxel_color = hash31(float(voxel_id));
+    voxel_color = hash31(float(voxel_id));
     // voxel_color = get_color_modifier(in_position, uv_index);
     shading = face_shading[face_id] * ao_values[ao_id];
 
