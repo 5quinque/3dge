@@ -31,3 +31,5 @@ class Frustum:
         dist = self.factor_x * CHUNK_SPHERE_RADIUS + sz * self.tan_x
         if not (-dist <= sx <= dist):
             return False
+
+        return True

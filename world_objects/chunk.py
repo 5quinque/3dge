@@ -28,10 +28,9 @@ class Chunk:
         self.mesh = ChunkMesh(self)
 
     def render(self):
-        if self.is_empty and self.is_on_frustum(self):
-            return
-        self.set_uniform()
-        self.mesh.render()
+        if not self.is_empty and self.is_on_frustum(self):
+            self.set_uniform()
+            self.mesh.render()
 
     def generate_simplex_noise(self, *vector):
         return int(glm.simplex(glm.vec2(*vector) * 0.005) * 32 + 32)
