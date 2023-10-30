@@ -33,6 +33,8 @@ class VoxelEngine:
         self.delta_time = 0.0
         self.time = 0.0
 
+        # self.ctx.wireframe = True
+
         pg.event.set_grab(True)
         pg.mouse.set_visible(False)
 

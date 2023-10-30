@@ -9,6 +9,7 @@ class ShaderProgram:
         # --- Shader Programs ---
         self.chunk = self.get_program(shader_name="chunk")
         self.voxel_marker = self.get_program(shader_name="voxel_marker")
+        self.hud = self.get_program(shader_name="hud")
         # ------------------------
         self.set_uniforms_on_init()
 
@@ -22,6 +23,11 @@ class ShaderProgram:
         self.voxel_marker["m_proj"].write(self.player.m_proj)
         self.voxel_marker["m_model"].write(glm.mat4())
         self.voxel_marker["u_texture_0"] = 0
+
+        # hud
+        self.hud["projection"].write(
+            glm.ortho(-WINDOW_ASPECT_RATIO, WINDOW_ASPECT_RATIO, -1, 1, -1, 1)
+        )
 
     def update(self):
         self.chunk["m_view"].write(self.player.m_view)

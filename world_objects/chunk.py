@@ -33,7 +33,7 @@ class Chunk:
             self.mesh.render()
 
     def generate_simplex_noise(self, *vector):
-        return int(glm.simplex(glm.vec2(*vector) * 0.005) * 32 + 32)
+        return int(glm.simplex(glm.vec2(*vector) * 0.0003) * CHUNK_SIZE + CHUNK_SIZE)
 
     def generate_sin(self, *sin_range, x):
         return int(
