@@ -67,8 +67,7 @@ class Chunk:
 
                     # the `voxel_id` is the "type" of voxel
                     # e.g. grass, dirt, stone, etc.
-                    voxel_id = rng
-                    voxels[x + CHUNK_SIZE * z + CHUNK_AREA * y] = voxel_id
+                    voxels[x + CHUNK_SIZE * z + CHUNK_AREA * y] = 2
 
         if np.any(voxels):
             self.is_empty = False
