@@ -1,7 +1,8 @@
 import random
 
-from settings import *
 from meshes.chunk_mesh import ChunkMesh
+from terrain_gen import get_height, set_voxel_id
+from settings import *
 
 
 class Chunk:
@@ -47,9 +48,16 @@ class Chunk:
 
         # fill chunk
         cx, cy, cz = glm.ivec3(self.position) * CHUNK_SIZE
+        self.generate_terrain(voxels, cx, cy, cz)
 
-        rng = random.randrange(1, 100)
+        if np.any(voxels):
+            self.is_empty = False
 
+        return voxels
+
+    @staticmethod
+    @njit
+    def generate_terrain(voxels, cx, cy, cz):
         for x in range(CHUNK_SIZE):
             wx = x + cx
             for z in range(CHUNK_SIZE):
@@ -59,7 +67,7 @@ class Chunk:
                 # For this specific voxel column, it will return
                 # the height for that point in the chunk, e.g. how many
                 # voxels in that column
-                world_height = self.generate_simplex_noise(wx, wz)
+                world_height = get_height(wx, wz)
                 # print("world height at wx", wx, world_height)
                 local_height = min(world_height - cy, CHUNK_SIZE)
                 for y in range(local_height):
@@ -67,9 +75,6 @@ class Chunk:
 
                     # the `voxel_id` is the "type" of voxel
                     # e.g. grass, dirt, stone, etc.
-                    voxels[x + CHUNK_SIZE * z + CHUNK_AREA * y] = 2
-
-        if np.any(voxels):
-            self.is_empty = False
-
-        return voxels
+                    set_voxel_id(
+                        voxels, x, y, z, wx, wy, wz, world_height
+                    )
